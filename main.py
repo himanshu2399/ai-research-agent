@@ -1,113 +1,174 @@
+"""Main entry point for AI Research Agent."""
+import logging
+import sys
+from typing import Dict, Any
+
 from collectors.rss_collector import collect_rss_articles
 from collectors.github_collector import collect_github_trends
 from collectors.hn_collector import collect_hn_posts
-from agents.image_generator import generate_image
+from agents.image_generator import generate_image, extract_image_prompt
 from agents.topic_researcher import generate_research_topic
 from agents.linkedin_writer import generate_linkedin_post
-
-from storage.save_output import save_to_file
 from agents.visual_agent import generate_visual_prompt
 from agents.orchestrator_agent import orchestrate_final_output
+from storage.save_output import save_to_file
+from utils import validate_topic_response, format_collected_data
 
-def main():
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
 
-    print("Collecting RSS articles...")
-    rss_data = collect_rss_articles()
 
-    print("Collecting GitHub trends...")
-    github_data = collect_github_trends()
+def run_pipeline() -> str:
+    """
+    Execute the full AI Research Agent pipeline.
 
-    print("Collecting HackerNews posts...")
-    hn_data = collect_hn_posts()
+    Returns:
+        Path to the saved output file
 
-    combined_data = f"""
-RSS ARTICLES:
-{rss_data}
+    Raises:
+        Exception: If any critical step fails
+    """
+    logger.info("=" * 60)
+    logger.info("Starting AI Research Agent Pipeline")
+    logger.info("=" * 60)
 
-GITHUB TRENDS:
-{github_data}
+    # Step 1: Collect data from all sources
+    logger.info("Step 1: Collecting data from sources...")
 
-HACKERNEWS:
-{hn_data}
-"""
+    try:
+        logger.info("  Collecting RSS articles...")
+        rss_data = collect_rss_articles()
+        logger.info(f"  ✓ Collected {len(rss_data)} RSS articles")
+    except Exception as e:
+        logger.error(f"  ✗ RSS collection failed: {e}")
+        rss_data = []
 
-    print("Generating research topic...")
+    try:
+        logger.info("  Collecting GitHub trends...")
+        github_data = collect_github_trends()
+        logger.info(f"  ✓ Collected {len(github_data)} GitHub repos")
+    except Exception as e:
+        logger.error(f"  ✗ GitHub collection failed: {e}")
+        github_data = []
+
+    try:
+        logger.info("  Collecting Hacker News posts...")
+        hn_data = collect_hn_posts()
+        logger.info(f"  ✓ Collected {len(hn_data)} HN posts")
+    except Exception as e:
+        logger.error(f"  ✗ Hacker News collection failed: {e}")
+        hn_data = []
+
+    # Validate we have at least some data
+    total_items = len(rss_data) + len(github_data) + len(hn_data)
+    if total_items == 0:
+        raise Exception("No data collected from any source. Cannot proceed.")
+
+    logger.info(f"Total items collected: {total_items}")
+
+    # Step 2: Combine data
+    combined_data = format_collected_data(rss_data, github_data, hn_data)
+
+    # Step 3: Generate research topic
+    logger.info("Step 2: Generating research topic...")
     topic = generate_research_topic(combined_data)
 
-    print("\nTOPIC JSON:\n")
-    print(topic)
+    logger.info("Topic selected:")
+    logger.info(f"  Topic: {topic.get('top_topic', 'N/A')}")
+    logger.info(f"  Key Insight: {topic.get('key_insight', 'N/A')[:100]}...")
 
-    print("\nFULL TOPIC RESPONSE:\n")
-    print(topic)
+    # Step 4: Generate LinkedIn post
+    logger.info("Step 3: Generating LinkedIn post...")
 
-    required_keys = ["top_topic", "summary", "key_insight", "recommended_angle"]
-    missing_keys = [key for key in required_keys if key not in topic]
-    if missing_keys:
-        raise KeyError(
-            f"Research topic response is missing required keys: {missing_keys}.\nResponse: {topic}"
-        )
+    topic_input = f"""
+TOPIC:
+{topic.get('top_topic', '')}
 
-    top_topic = topic["top_topic"]
-    summary = topic["summary"]
-    key_insight = topic["key_insight"]
-    recommended_angle = topic["recommended_angle"]
+SUMMARY:
+{topic.get('summary', '')}
 
-    print("\nGenerating LinkedIn post...\n")
+KEY INSIGHT:
+{topic.get('key_insight', '')}
 
-    linkedin_post = generate_linkedin_post(
-        f"""
-    TOPIC:
-    {top_topic}
+RECOMMENDED ANGLE:
+{topic.get('recommended_angle', '')}
+"""
 
-    SUMMARY:
-    {summary}
+    linkedin_post = generate_linkedin_post(topic_input)
+    logger.info(f"✓ LinkedIn post generated ({len(linkedin_post)} chars)")
 
-    KEY INSIGHT:
-    {key_insight}
+    # Step 5: Generate visual concepts
+    logger.info("Step 4: Generating visual concepts...")
 
-    RECOMMENDED ANGLE:
-    {recommended_angle}
-    """
-    )
+    visual_input = f"""
+TOPIC:
+{topic.get('top_topic', '')}
 
-    print("\nGenerating visual concepts...\n")
+KEY INSIGHT:
+{topic.get('key_insight', '')}
+"""
 
-    visual_prompt = generate_visual_prompt(
-        f"""
-    TOPIC:
-    {top_topic}
+    visual_prompt = generate_visual_prompt(visual_input)
+    logger.info(f"✓ Visual concepts generated ({len(visual_prompt)} chars)")
 
-    KEY INSIGHT:
-    {key_insight}
-    """
-    )
+    # Step 6: Generate AI image
+    logger.info("Step 5: Generating AI image...")
 
-    print(visual_prompt)
+    image_prompt_text = extract_image_prompt(visual_prompt)
 
-    print("\nGenerating AI image...\n")
+    try:
+        image_path = generate_image(image_prompt_text)
+        logger.info(f"✓ Image saved at: {image_path}")
+    except Exception as e:
+        logger.error(f"✗ Image generation failed: {e}")
+        image_path = None
 
-    image_path = generate_image(visual_prompt)
-
-    print(f"Image saved at: {image_path}")
-
-    print(linkedin_post)
-
-    print("\nOrchestrating final deliverable...\n")
+    # Step 7: Orchestrate final deliverable
+    logger.info("Step 6: Orchestrating final deliverable...")
 
     final_output = orchestrate_final_output(
-        topic,
-        linkedin_post,
-        visual_prompt
+        topic=topic,
+        linkedin_post=linkedin_post,
+        visual_prompt=visual_prompt
     )
 
-    print("\n" + "="*80)
-    print("FINAL DELIVERABLE")
-    print("="*80)
-    print(final_output)
-            
-    filename = save_to_file(final_output)
+    # Step 8: Save output
+    logger.info("Step 7: Saving output...")
 
-    print(f"\nSaved to: {filename}")
+    filename = save_to_file(final_output)
+    logger.info(f"✓ Output saved to: {filename}")
+
+    # Summary
+    logger.info("=" * 60)
+    logger.info("Pipeline Complete")
+    logger.info("=" * 60)
+    logger.info(f"Output file: {filename}")
+    if image_path:
+        logger.info(f"Image file: {image_path}")
+
+    return filename
+
+
+def main():
+    """Main entry point with error handling."""
+    try:
+        output_file = run_pipeline()
+        print(f"\n✓ Success! Output saved to: {output_file}")
+        return 0
+    except KeyboardInterrupt:
+        logger.info("\nPipeline interrupted by user")
+        return 130
+    except Exception as e:
+        logger.error(f"\n✗ Pipeline failed: {e}", exc_info=True)
+        return 1
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
