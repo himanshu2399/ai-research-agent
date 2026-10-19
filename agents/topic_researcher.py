@@ -51,7 +51,6 @@ DATA:
                         "content": prompt
                     }
                 ],
-                temperature=0.7  # Balanced creativity for topic selection
             )
 
             content = response.choices[0].message.content

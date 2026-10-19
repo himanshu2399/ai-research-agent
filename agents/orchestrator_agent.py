@@ -63,8 +63,7 @@ VISUAL CONCEPTS:
                     "content": final_prompt
                 }
             ],
-            temperature=temperature  # Lower for consistent assembly
-        )
+                    )
 
         output_content = response.choices[0].message.content
 

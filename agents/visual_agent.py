@@ -47,8 +47,7 @@ TOPIC:
                     "content": final_prompt
                 }
             ],
-            temperature=temperature  # Higher for creative visuals
-        )
+                    )
 
         visual_content = response.choices[0].message.content
 
