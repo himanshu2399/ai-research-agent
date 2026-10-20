@@ -1,6 +1,8 @@
 """Main entry point for AI Research Agent."""
 import logging
 import sys
+import glob
+import os
 from typing import Dict, Any
 
 from collectors.rss_collector import collect_rss_articles
@@ -26,6 +28,33 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def cleanup_outputs() -> None:
+    """
+    Clean up all previous output files (posts and images) to keep only the latest run.
+    """
+    logger.info("Cleaning up previous outputs...")
+
+    # Clean up markdown posts
+    post_files = glob.glob("outputs/post_*.md")
+    for f in post_files:
+        try:
+            os.remove(f)
+            logger.debug(f"Removed: {f}")
+        except Exception as e:
+            logger.warning(f"Failed to remove {f}: {e}")
+
+    # Clean up images
+    image_files = glob.glob("outputs/images/image_*.png")
+    for f in image_files:
+        try:
+            os.remove(f)
+            logger.debug(f"Removed: {f}")
+        except Exception as e:
+            logger.warning(f"Failed to remove {f}: {e}")
+
+    logger.info(f"Cleaned up {len(post_files)} post(s) and {len(image_files)} image(s)")
+
+
 def run_pipeline() -> str:
     """
     Execute the full AI Research Agent pipeline.
@@ -40,7 +69,8 @@ def run_pipeline() -> str:
     logger.info("Starting AI Research Agent Pipeline")
     logger.info("=" * 60)
 
-    # Step 1: Collect data from all sources
+    # Clean up previous outputs first
+    cleanup_outputs()
     logger.info("Step 1: Collecting data from sources...")
 
     try:
