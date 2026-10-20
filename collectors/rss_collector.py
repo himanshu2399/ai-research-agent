@@ -1,10 +1,14 @@
 """RSS feed collector for AI Research Agent."""
 import logging
+import ssl
 from typing import List, Dict
 
 import feedparser
 
 from collectors.base import with_retry, safe_get
+
+# Disable SSL verification to handle certificate issues on some systems
+ssl._create_default_https_context = ssl._create_unverified_context
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +51,17 @@ def fetch_feed(url: str, limit: int) -> List[Dict]:
     """
     logger.info(f"Fetching RSS feed: {url}")
     feed = feedparser.parse(url)
+
+    # Check for errors
+    if feed.bozo:
+        logger.warning(f"Feed parse error (bozo): {feed.bozo_exception}")
+
+    logger.info(f"Feed parsed successfully. Total entries available: {len(feed.entries)}")
+
+    # Debug: log first entry structure if available
+    if feed.entries and len(feed.entries) > 0:
+        first_entry = feed.entries[0]
+        logger.debug(f"First entry keys: {first_entry.keys() if hasattr(first_entry, 'keys') else 'N/A'}")
 
     articles = []
     for entry in feed.entries[:limit]:

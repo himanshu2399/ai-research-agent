@@ -12,11 +12,12 @@ from agents.linkedin_writer import generate_linkedin_post
 from agents.visual_agent import generate_visual_prompt
 from agents.orchestrator_agent import orchestrate_final_output
 from storage.save_output import save_to_file
+from storage.topic_memory import get_topic_count, is_topic_duplicate, add_topic_to_memory
 from utils import validate_topic_response, format_collected_data
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout)
@@ -84,6 +85,13 @@ def run_pipeline() -> str:
     logger.info(f"  Topic: {topic.get('top_topic', 'N/A')}")
     logger.info(f"  Key Insight: {topic.get('key_insight', 'N/A')[:100]}...")
 
+    # Check for duplicate topics before proceeding
+    logger.info("Checking for topic duplicates...")
+    if is_topic_duplicate(topic.get('top_topic', '')):
+        logger.warning("Duplicate topic detected, skipping to next iteration...")
+        logger.warning("To force a new topic, clear the memory file at: outputs/topic_memory.md")
+        raise Exception("Duplicate topic detected - stopping pipeline to avoid duplicate LinkedIn posts")
+
     # Step 4: Generate LinkedIn post
     logger.info("Step 3: Generating LinkedIn post...")
 
@@ -144,6 +152,15 @@ KEY INSIGHT:
 
     filename = save_to_file(final_output)
     logger.info(f"✓ Output saved to: {filename}")
+
+    # Step 9: Save topic to memory
+    logger.info("Step 8: Saving topic to memory...")
+    add_topic_to_memory(
+        topic=topic.get('top_topic', ''),
+        summary=topic.get('key_insight', ''),
+        post_file=filename
+    )
+    logger.info(f"✓ Topic saved to memory (total topics: {get_topic_count()})")
 
     # Summary
     logger.info("=" * 60)

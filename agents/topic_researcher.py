@@ -6,6 +6,7 @@ from typing import Dict, Any
 
 from config import get_openai_client
 from storage.prompt_loader import load_prompt
+from storage.topic_memory import format_memory_for_prompt
 from utils import validate_topic_response, sanitize_for_prompt
 
 logger = logging.getLogger(__name__)
@@ -28,11 +29,16 @@ def generate_research_topic(data: str, max_retries: int = 3) -> Dict[str, Any]:
     client = get_openai_client()
     prompt_template = load_prompt("prompts/research_prompt.txt")
 
+    # Get previous topics to avoid duplicates
+    memory_context = format_memory_for_prompt()
+
     # Sanitize input data to prevent prompt injection
     sanitized_data = sanitize_for_prompt(data, max_length=15000)
 
     prompt = f"""
 {prompt_template}
+
+{memory_context}
 
 DATA:
 {sanitized_data}

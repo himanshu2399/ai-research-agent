@@ -4,6 +4,7 @@ from typing import Optional
 
 from config import get_openai_client
 from storage.prompt_loader import load_prompt
+from storage.topic_memory import format_memory_for_prompt
 from utils import sanitize_for_prompt
 
 logger = logging.getLogger(__name__)
@@ -26,11 +27,16 @@ def generate_linkedin_post(topic: str, temperature: float = 0.8) -> str:
     client = get_openai_client()
     prompt_template = load_prompt("prompts/content_strategist.txt")
 
+    # Get previous topics to avoid duplicates
+    memory_context = format_memory_for_prompt()
+
     # Sanitize input to prevent prompt injection
     sanitized_topic = sanitize_for_prompt(topic, max_length=10000)
 
     final_prompt = f"""
 {prompt_template}
+
+{memory_context}
 
 TOPIC:
 {sanitized_topic}
