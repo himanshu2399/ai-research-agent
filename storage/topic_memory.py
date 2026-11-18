@@ -120,37 +120,30 @@ def format_memory_for_prompt() -> str:
 
 def is_topic_duplicate(new_topic: str, similarity_threshold: float = 0.7) -> bool:
     """
-    Check if a topic is too similar to previously covered topics.
+    Check if a topic is an exact duplicate of a previously covered topic.
 
     Args:
         new_topic: The topic to check
-        similarity_threshold: Threshold for considering topics similar (not used yet, placeholder)
+        similarity_threshold: Placeholder for future similarity logic (not used)
 
     Returns:
-        True if likely duplicate, False otherwise
+        True if exact duplicate found, False otherwise.
+        Note: Near-duplicate detection is now handled by the LLM via the memory
+        context injected into the research prompt; this function only guards
+        against exact string matches.
     """
     previous = get_previous_topics()
 
     if not previous:
         return False
 
-    # Simple keyword-based duplicate detection
-    # Convert to lowercase for comparison
-    new_lower = new_topic.lower()
+    new_lower = new_topic.lower().strip()
 
     for prev in previous:
-        prev_lower = prev['topic'].lower()
-
-        # Exact match
+        prev_lower = prev['topic'].lower().strip()
         if new_lower == prev_lower:
             logger.warning(f"Exact duplicate detected: {new_topic}")
             return True
-
-        # Check if one is substring of other (very similar)
-        if new_lower in prev_lower or prev_lower in new_lower:
-            if len(new_lower) > 20 and len(prev_lower) > 20:  # Only for substantial topics
-                logger.warning(f"Near duplicate detected: {new_topic} ~ {prev['topic']}")
-                return True
 
     return False
 

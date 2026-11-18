@@ -57,13 +57,28 @@ VISUAL CONCEPTS:
     try:
         response = client.chat.completions.create(
             model="gpt-5",
+            temperature=temperature,
             messages=[
                 {
+                    "role": "system",
+                    "content": prompt_template
+                },
+                {
                     "role": "user",
-                    "content": final_prompt
+                    "content": f""""<research_topic>
+{sanitized_topic}
+</research_topic>
+
+<linkedin_post>
+{sanitized_post}
+</linkedin_post>
+
+<visual_concepts>
+{sanitized_visual}
+</visual_concepts>"""
                 }
             ],
-                    )
+        )
 
         output_content = response.choices[0].message.content
 

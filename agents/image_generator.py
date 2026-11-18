@@ -11,13 +11,15 @@ from utils import sanitize_for_prompt
 logger = logging.getLogger(__name__)
 
 
-def generate_image(image_prompt: str, size: str = "1024x1024", max_retries: int = 3, timeout: int = 60) -> str:
+def generate_image(image_prompt: str, size: str = "1024x1536", max_retries: int = 3, timeout: int = 60) -> str:
     """
     Generate an AI image from a prompt with timeout and retry logic.
 
     Args:
         image_prompt: Text prompt for image generation
-        size: Image dimensions (default: 1024x1024)
+        size: Image dimensions. Default is portrait 2:3 ("1024x1536") to match the
+            feed-first infographic layout requested by prompts/visual_agent.txt.
+            Use "1024x1024" only if the visual prompt explicitly asks for square.
         max_retries: Maximum number of retry attempts
         timeout: Timeout in seconds for each API call
 

@@ -114,19 +114,12 @@ def run_pipeline() -> str:
     logger.info("Topic selected:")
     logger.info(f"  Topic: {topic.get('top_topic', 'N/A')}")
     logger.info(f"  Key Insight: {topic.get('key_insight', 'N/A')[:100]}...")
-
-    # Check for duplicate topics before proceeding
-    logger.info("Checking for topic duplicates...")
-    if is_topic_duplicate(topic.get('top_topic', '')):
-        logger.warning("Duplicate topic detected, skipping to next iteration...")
-        logger.warning("To force a new topic, clear the memory file at: outputs/topic_memory.md")
-        raise Exception("Duplicate topic detected - stopping pipeline to avoid duplicate LinkedIn posts")
+    logger.info(f"  Source: {topic.get('source_title', 'N/A')} ({topic.get('source_url', 'N/A')})")
 
     # Step 4: Generate LinkedIn post
     logger.info("Step 3: Generating LinkedIn post...")
 
-    topic_input = f"""
-TOPIC:
+    topic_input = f"""TOPIC:
 {topic.get('top_topic', '')}
 
 SUMMARY:
@@ -137,7 +130,12 @@ KEY INSIGHT:
 
 RECOMMENDED ANGLE:
 {topic.get('recommended_angle', '')}
-"""
+
+SOURCE TITLE:
+{topic.get('source_title', '')}
+
+SOURCE URL:
+{topic.get('source_url', '')}"""
 
     linkedin_post = generate_linkedin_post(topic_input)
     logger.info(f"✓ LinkedIn post generated ({len(linkedin_post)} chars)")
@@ -145,13 +143,11 @@ RECOMMENDED ANGLE:
     # Step 5: Generate visual concepts
     logger.info("Step 4: Generating visual concepts...")
 
-    visual_input = f"""
-TOPIC:
+    visual_input = f"""TOPIC:
 {topic.get('top_topic', '')}
 
 KEY INSIGHT:
-{topic.get('key_insight', '')}
-"""
+{topic.get('key_insight', '')}"""
 
     visual_prompt = generate_visual_prompt(visual_input)
     logger.info(f"✓ Visual concepts generated ({len(visual_prompt)} chars)")

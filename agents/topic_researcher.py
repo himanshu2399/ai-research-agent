@@ -21,7 +21,8 @@ def generate_research_topic(data: str, max_retries: int = 3) -> Dict[str, Any]:
         max_retries: Maximum number of retry attempts
 
     Returns:
-        Dictionary with keys: top_topic, summary, key_insight, recommended_angle
+        Dictionary with keys: top_topic, summary, key_insight, recommended_angle,
+                            source_title, source_url
 
     Raises:
         Exception: If all retry attempts fail
@@ -35,14 +36,13 @@ def generate_research_topic(data: str, max_retries: int = 3) -> Dict[str, Any]:
     # Sanitize input data to prevent prompt injection
     sanitized_data = sanitize_for_prompt(data, max_length=15000)
 
-    prompt = f"""
-{prompt_template}
-
-{memory_context}
-
-DATA:
+    prompt = f"""<collected_data>
 {sanitized_data}
-"""
+</collected_data>
+
+<previously_covered_topics>
+{memory_context}
+</previously_covered_topics>"""
 
     for attempt in range(1, max_retries + 1):
         try:
@@ -50,8 +50,13 @@ DATA:
 
             response = client.chat.completions.create(
                 model="gpt-5",
+                temperature=0.3,
                 response_format={"type": "json_object"},
                 messages=[
+                    {
+                        "role": "system",
+                        "content": prompt_template
+                    },
                     {
                         "role": "user",
                         "content": prompt
@@ -76,7 +81,7 @@ DATA:
                     f"Model returned JSON, but not an object. Response content:\n{content}"
                 )
 
-            # Validate required fields
+            # Validate required fields (includes source_title, source_url)
             if not validate_topic_response(topic):
                 raise ValueError(
                     f"Response missing required fields or has empty values.\n"

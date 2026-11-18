@@ -41,13 +41,20 @@ TOPIC:
     try:
         response = client.chat.completions.create(
             model="gpt-5",
+            temperature=temperature,
             messages=[
                 {
+                    "role": "system",
+                    "content": prompt_template
+                },
+                {
                     "role": "user",
-                    "content": final_prompt
+                    "content": f""""<topic_input>
+{sanitized_topic}
+</topic_input>"""
                 }
             ],
-                    )
+        )
 
         visual_content = response.choices[0].message.content
 
