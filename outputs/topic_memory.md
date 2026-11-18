@@ -34,3 +34,13 @@ This file tracks all topics generated to prevent duplicates.
 
 ---
 
+## 2026-11-18 21:36:43
+
+**Topic:** Migrating Kubernetes clusters from kube-proxy IPVS to nftables before removal
+
+**Summary:** Teams still on IPVS should plan an imminent migration—nftables is the supported, feature-complete path with equal-or-better performance, while iptables is a viable fallback—because waiting risks breakage by v1.40 and distro-level incompatibilities.
+
+**File:** `/Users/himanshusoni/ai-research/ai-research-agent/outputs/post_20261118_213643.md`
+
+---
+
